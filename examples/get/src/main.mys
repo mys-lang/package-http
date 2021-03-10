@@ -1,0 +1,5 @@
+from http import get
+
+def main():
+    print(string(get("example.com")))
+    print(string(get("example.com", 443, secure=True)))

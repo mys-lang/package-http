@@ -1,0 +1,105 @@
+from net.tcp.client import Client as TcpClient
+from net.stcp.client import Client as StcpClient
+
+class HttpError(Error):
+    message: string
+
+@trait
+class _Io:
+
+    def write(self, data: bytes):
+        pass
+
+    def read(self, size: u32) -> bytes:
+        pass
+
+class _TcpIo(_Io):
+    client: TcpClient
+
+    def write(self, data: bytes):
+        self.client.write(data)
+
+    def read(self, size: u32) -> bytes:
+        return self.client.read(size)
+
+class _StcpIo(_Io):
+    client: StcpClient
+
+    def write(self, data: bytes):
+        self.client.write(data)
+
+    def read(self, size: u32) -> bytes:
+        return self.client.read(size)
+
+def _read_line(io: _Io) -> string:
+    line = b""
+
+    while True:
+        byte = io.read(1)
+
+        if len(byte) != 1:
+            raise HttpError("Handshake failed.")
+
+        line += byte
+
+        if len(line) < 2:
+            continue
+
+        if line[-2] == u8('\r') and line[-1] == u8('\n'):
+            break
+
+    return string(line)[:-2]
+
+def _read_headers(io: _Io) -> {string: string}:
+    headers: {string: string} = {}
+
+    while True:
+        line = _read_line(io)
+
+        if len(line) == 0:
+            break
+
+        mo = line.match(re"^([^:]+): (.*)$")
+
+        if mo is not None:
+            headers[mo.group(1)] = mo.group(2)
+
+    return headers
+
+def get(host: string,
+        port: u32 = 80,
+        path: string = "/",
+        secure: bool = False) -> bytes:
+    """Get given path from given address.
+
+    """
+
+    io: _Io = None
+
+    if secure:
+        client = StcpClient()
+        client.connect(host, port)
+        io = _StcpIo(client)
+    else:
+        client = TcpClient()
+        client.connect(host, port)
+        io = _TcpIo(client)
+
+    io.write(f"GET {path} HTTP/1.1\r\n"
+             f"Host: {host}\r\n"
+             "User-Agent: mys/0.1.0\r\n"
+             "Accept: */*\r\n"
+             "\r\n".to_utf8())
+    line = _read_line(io)
+    mo = line.match(re"^HTTP/1.1 200 OK$")
+
+    if mo is None:
+        return None
+
+    headers = _read_headers(io)
+    content_length = headers.get("Content-Length", None)
+
+    if content_length is None:
+        return b""
+    else:
+        return io.read(u32(content_length))
