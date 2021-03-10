@@ -69,8 +69,9 @@ def _read_headers(io: _Io) -> {string: string}:
 def get(host: string,
         port: u32 = 80,
         path: string = "/",
-        secure: bool = False) -> bytes:
-    """Get given path from given address.
+        secure: bool = False) -> ({string: string}, bytes):
+    """Get given path from given address. Returns a tuple of received
+    headers and data.
 
     """
 
@@ -94,12 +95,14 @@ def get(host: string,
     mo = line.match(re"^HTTP/1.1 200 OK$")
 
     if mo is None:
-        return None
+        raise HttpError("Unsuccessful status in response.")
 
     headers = _read_headers(io)
     content_length = headers.get("Content-Length", None)
 
     if content_length is None:
-        return b""
+        data = b""
     else:
-        return io.read(u32(content_length))
+        data = io.read(u32(content_length))
+
+    return (headers, data)
