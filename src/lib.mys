@@ -55,6 +55,7 @@ def _read_headers(io: _Io) -> {string: string}:
 
     while True:
         line = _read_line(io)
+        #print(line)
 
         if len(line) == 0:
             break
@@ -66,10 +67,69 @@ def _read_headers(io: _Io) -> {string: string}:
 
     return headers
 
+def _execute(method: string,
+             host: string,
+             port: u32,
+             path: string,
+             secure: bool,
+             headers: {string: string}) -> ({string: string}, bytes):
+    io: _Io = None
+
+    if secure:
+        client = StcpClient()
+        client.connect(host, port)
+        io = _StcpIo(client)
+    else:
+        client = TcpClient()
+        client.connect(host, port)
+        io = _TcpIo(client)
+
+    headers_string = ""
+
+    for name, value in headers:
+        headers_string += f"{name}: {value}\r\n"
+
+    request = (f"{method} {path} HTTP/1.1\r\n"
+               f"Host: {host}\r\n"
+               "User-Agent: mys/0.1.0\r\n"
+               "Accept: */*\r\n"
+               + headers_string
+               + "\r\n")
+    #print(request)
+    io.write(request.to_utf8())
+    line = _read_line(io)
+    mo = line.match(re"^HTTP/1.1 200 OK$")
+
+    if mo is None:
+        raise HttpError("Unsuccessful status in response.")
+
+    headers = _read_headers(io)
+    content_length = headers.get("Content-Length", None)
+
+    if content_length is None:
+        data = b""
+    else:
+        data = io.read(u32(content_length))
+
+    return (headers, data)
+
 def get(host: string,
         port: u32 = 80,
         path: string = "/",
-        secure: bool = False) -> ({string: string}, bytes):
+        secure: bool = False,
+        headers: {string: string} = {}) -> ({string: string}, bytes):
+    """Get given path from given address. Returns a tuple of received
+    headers and data.
+
+    """
+
+    return _execute("GET", host, port, path, secure, headers)
+
+def post(host: string,
+         data: bytes,
+         port: u32 = 80,
+         path: string = "/",
+         secure: bool = False) -> ({string: string}, bytes):
     """Get given path from given address. Returns a tuple of received
     headers and data.
 
@@ -86,11 +146,7 @@ def get(host: string,
         client.connect(host, port)
         io = _TcpIo(client)
 
-    io.write(f"GET {path} HTTP/1.1\r\n"
-             f"Host: {host}\r\n"
-             "User-Agent: mys/0.1.0\r\n"
-             "Accept: */*\r\n"
-             "\r\n".to_utf8())
+    io.write(data)
     line = _read_line(io)
     mo = line.match(re"^HTTP/1.1 200 OK$")
 

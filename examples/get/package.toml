@@ -5,4 +5,5 @@ authors = ["Mys Lang <mys.lang@example.com>"]
 
 [dependencies]
 http = { path = "../.." }
-net = "*"
+# net = "*"
+net = { path = "../../../package-net" }
