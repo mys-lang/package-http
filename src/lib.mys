@@ -72,7 +72,8 @@ def _execute(method: string,
              port: u32,
              path: string,
              secure: bool,
-             headers: {string: string}) -> ({string: string}, bytes):
+             headers: {string: string},
+             data: bytes = None) -> ({string: string}, bytes):
     io: _Io = None
 
     if secure:
@@ -84,19 +85,31 @@ def _execute(method: string,
         client.connect(host, port)
         io = _TcpIo(client)
 
-    headers_string = ""
+    if "Host" not in headers:
+        headers["Host"] = host
+
+    if "User-Agent" not in headers:
+        headers["User-Agent"] = "mys/0.1.0"
+
+    if "Accept" not in headers:
+        headers["Accept"] = "*/*"
+
+    if data is not None:
+        headers["Content-Length"] = f"{len(data)}"
+
+    request = f"{method} {path} HTTP/1.1\r\n"
 
     for name, value in headers:
-        headers_string += f"{name}: {value}\r\n"
+        request += f"{name}: {value}\r\n"
 
-    request = (f"{method} {path} HTTP/1.1\r\n"
-               f"Host: {host}\r\n"
-               "User-Agent: mys/0.1.0\r\n"
-               "Accept: */*\r\n"
-               + headers_string
-               + "\r\n")
-    #print(request)
-    io.write(request.to_utf8())
+    request += "\r\n"
+    request_bytes = request.to_utf8()
+
+    if data is not None:
+        for i in range(i64(len(data))):
+            request_bytes += data[i]
+
+    io.write(request_bytes)
     line = _read_line(io)
     mo = line.match(re"^HTTP/1.1 200 OK$")
 
@@ -129,36 +142,11 @@ def post(host: string,
          data: bytes,
          port: u32 = 80,
          path: string = "/",
-         secure: bool = False) -> ({string: string}, bytes):
-    """Get given path from given address. Returns a tuple of received
-    headers and data.
+         secure: bool = False,
+         headers: {string: string} = {}) -> ({string: string}, bytes):
+    """Post given path and data to given address. Returns a tuple of
+    received headers and data.
 
     """
 
-    io: _Io = None
-
-    if secure:
-        client = StcpClient()
-        client.connect(host, port)
-        io = _StcpIo(client)
-    else:
-        client = TcpClient()
-        client.connect(host, port)
-        io = _TcpIo(client)
-
-    io.write(data)
-    line = _read_line(io)
-    mo = line.match(re"^HTTP/1.1 200 OK$")
-
-    if mo is None:
-        raise HttpError("Unsuccessful status in response.")
-
-    headers = _read_headers(io)
-    content_length = headers.get("Content-Length", None)
-
-    if content_length is None:
-        data = b""
-    else:
-        data = io.read(u32(content_length))
-
-    return (headers, data)
+    return _execute("POST", host, port, path, secure, headers, data)
