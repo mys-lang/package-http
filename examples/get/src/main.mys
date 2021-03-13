@@ -1,10 +1,16 @@
+from argparse import Parser
 from http import get
 
-def main():
-    headers, data = get("example.com")
-    print(headers)
-    print(string(data))
+def main(argv: [string]):
+    parser = Parser("get")
+    parser.add_option("--port", default="80")
+    parser.add_option("--path", default="/")
+    parser.add_option("--secure")
+    parser.add_positional("host")
+    args = parser.parse(argv)
 
-    headers, data = get("example.com", 443, secure=True)
-    print(headers)
+    data = get(host=args.value_of("host"),
+               port=u32(args.value_of("--port")),
+               path=args.value_of("--path"),
+               secure=args.is_present("--secure"))[1]
     print(string(data))

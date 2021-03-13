@@ -4,6 +4,23 @@ from net.stcp.client import Client as StcpClient
 class HttpError(Error):
     message: string
 
+def hex2dec(hex: string) -> u32:
+    dec: u32 = 0
+
+    for ch in hex:
+        dec *= 16
+
+        if ch >= '0' and ch <= '9':
+            dec += u32(ch - '0')
+        elif ch >= 'a' and ch <= 'f':
+            dec += 10 + u32(ch - 'a')
+        elif ch >= 'A' and ch <= 'F':
+            dec += 10 + u32(ch - 'A')
+        else:
+            raise ValueError("bad hex")
+
+    return dec
+
 @trait
 class _Io:
 
@@ -55,7 +72,6 @@ def _read_headers(io: _Io) -> {string: string}:
 
     while True:
         line = _read_line(io)
-        #print(line)
 
         if len(line) == 0:
             break
@@ -106,8 +122,7 @@ def _execute(method: string,
     request_bytes = request.to_utf8()
 
     if data is not None:
-        for i in range(i64(len(data))):
-            request_bytes += data[i]
+        request_bytes += data
 
     io.write(request_bytes)
     line = _read_line(io)
@@ -121,6 +136,17 @@ def _execute(method: string,
 
     if content_length is None:
         data = b""
+
+        while True:
+            chunk_length = hex2dec(_read_line(io))
+
+            if chunk_length == 0:
+                break
+
+            data += io.read(chunk_length)
+
+            if len(_read_line(io)) != 0:
+                raise HttpError("Bad chunked data in response.")
     else:
         data = io.read(u32(content_length))
 
