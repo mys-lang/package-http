@@ -17,7 +17,7 @@ def hex2dec(hex: string) -> u32:
         elif ch >= 'A' and ch <= 'F':
             dec += 10 + u32(ch - 'A')
         else:
-            raise ValueError("bad hex")
+            raise HttpError("Bad size in chunked body response.")
 
     return dec
 
