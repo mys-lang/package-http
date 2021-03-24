@@ -1,7 +1,9 @@
+|test|_
+
 About
 =====
 
-HTTP in the `Mys programming language`_.
+An implementation of the HTTP protocol.
 
 Project: https://github.com/mys-lang/package-http
 
@@ -10,4 +12,5 @@ Functions and types
 
 .. mysfile:: src/lib.mys
 
-.. _Mys programming language: https://mys.readthedocs.io/en/latest/
+.. |test| image:: https://github.com/mys-lang/package-http/actions/workflows/pythonpackage.yml/badge.svg
+.. _test: https://github.com/mys-lang/package-http/actions/workflows/pythonpackage.yml
