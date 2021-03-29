@@ -42,4 +42,4 @@ jobs:
         pip install mys
     - name: Publish release to mys-lang.org
       run: |
-        make publish -t ${{secrets.publish_token}}
+        mys publish -t ${{secrets.publish_token}}
