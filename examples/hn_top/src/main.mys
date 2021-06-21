@@ -38,7 +38,7 @@ def fetch_top_stories(count: u32) -> [Story]:
     stories: [Story] = []
 
     for id in slice(response.get_list(), 0, i64(count)):
-        stories += fetch_story(id.get_integer())
+        stories.append(fetch_story(id.get_integer()))
 
     return stories
 

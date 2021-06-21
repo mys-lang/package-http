@@ -7,3 +7,4 @@ authors = ["Mys Lang <mys.lang@example.com>"]
 http = { path = "../.." }
 net = "latest"
 argparse = "latest"
+io = "latest"

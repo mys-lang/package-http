@@ -9,3 +9,4 @@ argparse = "latest"
 http = { path = "../.." }
 string = "latest"
 net = "latest"
+io = "latest"

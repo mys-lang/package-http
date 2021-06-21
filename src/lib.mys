@@ -4,18 +4,18 @@ from net.stcp.client import Client as StcpClient
 class HttpError(Error):
     message: string
 
-def hex2dec(hex: string) -> u32:
-    dec: u32 = 0
+def hex2dec(hex: string) -> u64:
+    dec: u64 = 0
 
     for ch in hex:
         dec *= 16
 
         if ch >= '0' and ch <= '9':
-            dec += u32(ch - '0')
+            dec += u64(ch - '0')
         elif ch >= 'a' and ch <= 'f':
-            dec += 10 + u32(ch - 'a')
+            dec += 10 + u64(ch - 'a')
         elif ch >= 'A' and ch <= 'F':
-            dec += 10 + u32(ch - 'A')
+            dec += 10 + u64(ch - 'A')
         else:
             raise HttpError("Bad size in chunked body response.")
 
@@ -27,7 +27,7 @@ class _Io:
     def write(self, data: bytes):
         pass
 
-    def read(self, size: u32) -> bytes:
+    def read(self, size: u64) -> bytes:
         pass
 
 class _TcpIo(_Io):
@@ -36,7 +36,7 @@ class _TcpIo(_Io):
     def write(self, data: bytes):
         self.client.write(data)
 
-    def read(self, size: u32) -> bytes:
+    def read(self, size: u64) -> bytes:
         return self.client.read(size)
 
 class _StcpIo(_Io):
@@ -45,7 +45,7 @@ class _StcpIo(_Io):
     def write(self, data: bytes):
         self.client.write(data)
 
-    def read(self, size: u32) -> bytes:
+    def read(self, size: u64) -> bytes:
         return self.client.read(size)
 
 def _read_line(io: _Io) -> string:
@@ -129,7 +129,7 @@ def _execute(method: string,
     mo = line.match(re"^HTTP/1.1 200 OK$")
 
     if mo is None:
-        raise HttpError("Unsuccessful status in response.")
+        raise HttpError(f"Unsuccessful status in response ({line}).")
 
     headers = _read_headers(io)
     content_length = headers.get("Content-Length", None)
@@ -148,7 +148,7 @@ def _execute(method: string,
             if len(_read_line(io)) != 0:
                 raise HttpError("Bad chunked data in response.")
     else:
-        data = io.read(u32(content_length))
+        data = io.read(u64(content_length))
 
     return (headers, data)
 
