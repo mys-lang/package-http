@@ -79,7 +79,7 @@ def _read_headers(io: _Io) -> {string: string}:
         mo = line.match(re"^([^:]+): (.*)$")
 
         if mo is not None:
-            headers[mo.group(1)] = mo.group(2)
+            headers[mo.group(1).lower()] = mo.group(2)
 
     return headers
 
@@ -101,17 +101,17 @@ def _execute(method: string,
         client.connect(host, port)
         io = _TcpIo(client)
 
-    if "Host" not in headers:
-        headers["Host"] = host
+    if "host" not in headers:
+        headers["host"] = host
 
-    if "User-Agent" not in headers:
-        headers["User-Agent"] = "mys/0.1.0"
+    if "user-agent" not in headers:
+        headers["user-agent"] = "mys/0.1.0"
 
-    if "Accept" not in headers:
-        headers["Accept"] = "*/*"
+    if "accept" not in headers:
+        headers["accept"] = "*/*"
 
     if data is not None:
-        headers["Content-Length"] = f"{len(data)}"
+        headers["content-length"] = f"{len(data)}"
 
     request = f"{method} {path} HTTP/1.1\r\n"
 
@@ -132,7 +132,7 @@ def _execute(method: string,
         raise HttpError(f"Unsuccessful status in response ({line}).")
 
     headers = _read_headers(io)
-    content_length = headers.get("Content-Length", None)
+    content_length = headers.get("content-length", None)
 
     if content_length is None:
         data = b""
