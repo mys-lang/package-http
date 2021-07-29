@@ -7,8 +7,8 @@ An implementation of the HTTP protocol in the `Mys programming language`_.
 
 Project: https://github.com/mys-lang/package-http
 
-Functions and types
-===================
+API
+===
 
 .. mysfile:: src/lib.mys
 
