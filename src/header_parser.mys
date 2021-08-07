@@ -1,0 +1,113 @@
+_RE_REQUEST: regex = re"^(\w+) ([^? ]+)\??(.*) HTTP/1.1$"
+_RE_HEADER_LINE: regex = re"^([^:]+): (.*)$"
+_HEADER_END: bytes = b"\r\n"
+
+class HeaderParser:
+    """Parses HTTP headers.
+
+    """
+
+    _header: bytes
+    _offset: i64
+    _size: i64
+
+    def __init__(self, header: bytes):
+        """Initialize the parser with given header and it's size.
+
+        """
+
+        self._header = header
+        self._offset = 0
+        self._size = 0
+
+    def reset(self, size: u64):
+        self._offset = 0
+        self._size = i64(size)
+
+    def read_request_line(self) -> (string, string, string):
+        """Returns request method, path and parameters.
+
+        """
+
+        line = self.read_line()
+        mo = line.match(_RE_REQUEST)
+
+        if mo is None:
+            return None
+
+        return (mo.group(1), mo.group(2), mo.group(3))
+
+    def read_line(self) -> string:
+        """Returns the next header line.
+
+        """
+
+        pos = self._header.find(_HEADER_END, self._offset, self._size)
+        offset = self._offset
+        self._offset = pos + 2
+
+        return string(self._header, offset, pos)
+
+    def read_headers(self) -> {string: string}:
+        """Read remaining headers.
+
+        """
+
+        headers: {string: string} = {}
+
+        while True:
+            line = self.read_line()
+
+            if len(line) == 0:
+                break
+
+            mo = line.match(_RE_HEADER_LINE)
+
+            if mo is not None:
+                headers[mo.group(1).lower()] = mo.group(2)
+
+        return headers
+
+def parse_params(value: string) -> {string: string}:
+    """Parse given parameters and return a dictionary of them.
+
+    """
+
+    params: {string: string} = {}
+
+    for param in value.split('&'):
+        parts = param.split('=')
+
+        if len(parts) == 2:
+            params[parts[0]] = parts[1]
+
+    return params
+
+@test
+def test_request():
+    header = (b"GET /statistics.html HTTP/1.1\r\n"
+              b"Host: mys-lang.org\r\n"
+              b"Cache-Control: no-cache\r\n"
+              b"Referer: https://mys-lang.org/\r\n"
+              b"Accept-Encoding: gzip, deflate, br\r\n"
+              b"\r\n")
+    parser = HeaderParser(header)
+    parser.reset(len(header))
+    assert parser.read_request_line() == ("GET", "/statistics.html", "")
+    assert parser.read_line() == "Host: mys-lang.org"
+    assert parser.read_line() == "Cache-Control: no-cache"
+    assert parser.read_line() == "Referer: https://mys-lang.org/"
+    assert parser.read_line() == "Accept-Encoding: gzip, deflate, br"
+    assert parser.read_line() == ""
+    parser.reset(len(header))
+    assert parser.read_request_line() == ("GET", "/statistics.html", "")
+    assert parser.read_headers() == {"accept-encoding": "gzip, deflate, br",
+                                     "referer": "https://mys-lang.org/",
+                                     "cache-control": "no-cache",
+                                     "host": "mys-lang.org"}
+
+@test
+def test_parse_params():
+    assert parse_params("") == {}
+    assert parse_params("a=10") == {"a": "10"}
+    assert parse_params("a=10&foo=bar") == {"a": "10", "foo": "bar"}

@@ -12,7 +12,15 @@ Project: https://github.com/mys-lang/package-http
 API
 ===
 
+Various functions
+-----------------
+
 .. mysfile:: src/lib.mys
+
+Header parser
+-------------
+
+.. mysfile:: src/header_parser.mys
 
 .. |discord| image:: https://img.shields.io/discord/777073391320170507?label=Discord&logo=discord&logoColor=white
 .. _discord: https://discord.gg/GFDN7JvWKS
