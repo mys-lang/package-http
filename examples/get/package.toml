@@ -8,3 +8,4 @@ http = { path = "../.." }
 net = "latest"
 argparse = "latest"
 io = "latest"
+string = "latest"
