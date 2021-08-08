@@ -17,7 +17,7 @@ class Request:
     fragment: string
     headers: {string: string}
 
-class HeaderParser:
+class _HeaderParser:
     """Parses HTTP headers.
 
     """
@@ -99,6 +99,24 @@ class HeaderParser:
 
         return headers
 
+def parse_request(header: bytes) -> Request:
+    """Parse given request header.
+
+    """
+
+    parser = _HeaderParser(header)
+
+    return parser.parse_request(len(header))
+
+def parse_request(header: bytes, size: u64) -> Request:
+    """Parse given request header.
+
+    """
+
+    parser = _HeaderParser(header)
+
+    return parser.parse_request(size)
+
 def parse_query(value: string) -> {string: string}:
     """Parse given parameters and return them as a dictionary.
 
@@ -127,8 +145,7 @@ def test_request():
               b"Referer: https://mys-lang.org/\r\n"
               b"Accept-Encoding: gzip, deflate, br\r\n"
               b"\r\n")
-    parser = HeaderParser(header)
-    request = parser.parse_request(len(header))
+    request = parse_request(header)
     assert request.method == "GET"
     assert request.path == "/statistics.html"
     assert request.query == "foo"
@@ -142,8 +159,7 @@ def test_request():
 def test_request_no_query_nor_fragment():
     header = (b"GET / HTTP/1.1\r\n"
               b"\r\n")
-    parser = HeaderParser(header)
-    request = parser.parse_request(len(header))
+    request = parse_request(header)
     assert request.method == "GET"
     assert request.path == "/"
     assert request.query is None
@@ -155,8 +171,7 @@ def test_request_no_query_nor_fragment():
 def test_request_with_fragment():
     header = (b"GET /#foo HTTP/1.1\r\n"
               b"\r\n")
-    parser = HeaderParser(header)
-    request = parser.parse_request(len(header))
+    request = parse_request(header)
     assert request.method == "GET"
     assert request.path == "/"
     assert request.query is None
@@ -168,8 +183,7 @@ def test_request_with_fragment():
 def test_request_with_query():
     header = (b"GET /?foo HTTP/1.1\r\n"
               b"\r\n")
-    parser = HeaderParser(header)
-    request = parser.parse_request(len(header))
+    request = parse_request(header)
     assert request.method == "GET"
     assert request.path == "/"
     assert request.query == "foo"
@@ -181,11 +195,10 @@ def test_request_with_query():
 def test_request_invalid_request_line():
     header = (b" GET /statistics.html HTTP/1.1\r\n"
               b"\r\n")
-    parser = HeaderParser(header)
 
     try:
         message = ""
-        parser.parse_request(len(header))
+        parse_request(header)
     except HttpError as err:
         message = err.message
 
@@ -196,11 +209,10 @@ def test_request_invalid_header_line():
     header = (b"GET / HTTP/1.1\r\n"
               b"Host mys-lang.org\r\n"
               b"\r\n")
-    parser = HeaderParser(header)
 
     try:
         message = ""
-        parser.parse_request(len(header))
+        parse_request(header)
     except HttpError as err:
         message = err.message
 
@@ -212,15 +224,28 @@ def test_request_remaining_data():
               b"Host: mys-lang.org\r\n"
               b"\r\n"
               b"\r\n")
-    parser = HeaderParser(header)
 
     try:
         message = ""
-        parser.parse_request(len(header))
+        parse_request(header)
     except HttpError as err:
         message = err.message
 
     assert message == "remaining header data"
+
+@test
+def test_request_with_size():
+    header = (b"GET / HTTP/1.1\r\n"
+              b"Host: mys-lang.org\r\n"
+              b"\r\n"
+              b"\r\n")
+    request = parse_request(header, len(header) - 2)
+    assert request.method == "GET"
+    assert request.path == "/"
+    assert request.query is None
+    assert request.params == {}
+    assert request.fragment is None
+    assert request.headers == {"host": "mys-lang.org"}
 
 @test
 def test_parse_query():

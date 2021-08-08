@@ -4,7 +4,7 @@ from net.stcp.client import Client as StcpClient
 class HttpError(Error):
     message: string
 
-def hex2dec(hex: string) -> u64:
+def _hex2dec(hex: string) -> u64:
     dec: u64 = 0
 
     for ch in hex:
@@ -138,7 +138,7 @@ def _execute(method: string,
         data = b""
 
         while True:
-            chunk_length = hex2dec(_read_line(io))
+            chunk_length = _hex2dec(_read_line(io))
 
             if chunk_length == 0:
                 break
