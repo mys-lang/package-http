@@ -12,13 +12,13 @@ Project: https://github.com/mys-lang/package-http
 API
 ===
 
-Various functions
------------------
+http — Various HTTP helpers
+---------------------------
 
 .. mysfile:: src/lib.mys
 
-Header parser
--------------
+http.header_parser — Header parser
+----------------------------------
 
 .. mysfile:: src/header_parser.mys
 
