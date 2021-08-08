@@ -6,9 +6,14 @@ _RE_HEADER_LINE: regex = re"^([^:]+): (.*)$"
 _HEADER_END: bytes = b"\r\n"
 
 class Request:
+    """A HTTP request.
+
+    """
+
     method: string
     path: string
     query: string
+    params: {string: string}
     fragment: string
     headers: {string: string}
 
@@ -45,11 +50,17 @@ class HeaderParser:
         if mo is None:
             raise HttpError(f"invalid header line '{line}'")
 
-        print(mo.group(1), mo.group(6), mo.group(7), mo.group(8), mo.group(9), mo.group(10))
+        query = mo.group(8)
+
+        if query is None:
+            params: {string: string} = {}
+        else:
+            params = parse_query(query)
 
         request = Request(mo.group(1),
                           mo.group(6),
-                          mo.group(8),
+                          query,
+                          params,
                           mo.group(10),
                           self._parse_headers())
 
@@ -136,6 +147,7 @@ def test_request_no_query_nor_fragment():
     assert request.method == "GET"
     assert request.path == "/"
     assert request.query is None
+    assert request.params == {}
     assert request.fragment is None
     assert request.headers == {}
 
@@ -148,6 +160,7 @@ def test_request_with_fragment():
     assert request.method == "GET"
     assert request.path == "/"
     assert request.query is None
+    assert request.params == {}
     assert request.fragment == "foo"
     assert request.headers == {}
 
@@ -160,6 +173,7 @@ def test_request_with_query():
     assert request.method == "GET"
     assert request.path == "/"
     assert request.query == "foo"
+    assert request.params == {"foo": ""}
     assert request.fragment is None
     assert request.headers == {}
 
