@@ -1,6 +1,16 @@
-_RE_REQUEST: regex = re"^(\w+) ([^? ]+)\??(.*) HTTP/1.1$"
+from . import HttpError
+
+_RE_REQUEST: regex = (
+    re"^(\w+) (([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))? HTTP/1.1$")
 _RE_HEADER_LINE: regex = re"^([^:]+): (.*)$"
 _HEADER_END: bytes = b"\r\n"
+
+class Request:
+    method: string
+    path: string
+    query: string
+    fragment: string
+    headers: {string: string}
 
 class HeaderParser:
     """Parses HTTP headers.
@@ -12,7 +22,8 @@ class HeaderParser:
     _size: i64
 
     def __init__(self, header: bytes):
-        """Initialize the parser with given header and it's size.
+        """Initialize the parser with given header buffer. Call reset() before
+        reading from the header.
 
         """
 
@@ -20,25 +31,36 @@ class HeaderParser:
         self._offset = 0
         self._size = 0
 
-    def reset(self, size: u64):
-        self._offset = 0
-        self._size = i64(size)
-
-    def read_request_line(self) -> (string, string, string):
-        """Returns request method, path and parameters.
+    def parse_request(self, size: u64) -> Request:
+        """Parse a request of given size from start of header buffer.
 
         """
 
-        line = self.read_line()
+        self._offset = 0
+        self._size = i64(size)
+
+        line = self._read_line()
         mo = line.match(_RE_REQUEST)
 
         if mo is None:
-            return None
+            raise HttpError(f"invalid header line '{line}'")
 
-        return (mo.group(1), mo.group(2), mo.group(3))
+        print(mo.group(1), mo.group(6), mo.group(7), mo.group(8), mo.group(9), mo.group(10))
 
-    def read_line(self) -> string:
-        """Returns the next header line.
+        request = Request(mo.group(1),
+                          mo.group(6),
+                          mo.group(8),
+                          mo.group(10),
+                          self._parse_headers())
+
+        if self._offset != self._size:
+            raise HttpError("remaining header data")
+
+        return request
+
+    def _read_line(self) -> string:
+        """Returns the next header line. Returns the empty string if no more
+        lines are available.
 
         """
 
@@ -48,66 +70,151 @@ class HeaderParser:
 
         return string(self._header, offset, pos)
 
-    def read_headers(self) -> {string: string}:
-        """Read remaining headers.
-
-        """
-
+    def _parse_headers(self) -> {string: string}:
         headers: {string: string} = {}
 
         while True:
-            line = self.read_line()
+            line = self._read_line()
 
             if len(line) == 0:
                 break
 
             mo = line.match(_RE_HEADER_LINE)
 
-            if mo is not None:
-                headers[mo.group(1).lower()] = mo.group(2)
+            if mo is None:
+                raise HttpError(f"invalid header line '{line}'")
+
+            headers[mo.group(1).lower()] = mo.group(2)
 
         return headers
 
-def parse_params(value: string) -> {string: string}:
-    """Parse given parameters and return a dictionary of them.
+def parse_query(value: string) -> {string: string}:
+    """Parse given parameters and return them as a dictionary.
 
     """
 
     params: {string: string} = {}
 
     for param in value.split('&'):
-        parts = param.split('=')
+        if len(param) == 0:
+            continue
 
-        if len(parts) == 2:
-            params[parts[0]] = parts[1]
+        pos = param.find('=')
+
+        if pos == -1:
+            params[param] = ""
+        else:
+            params[param[0:pos]] = param[pos + 1:]
 
     return params
 
 @test
 def test_request():
-    header = (b"GET /statistics.html HTTP/1.1\r\n"
+    header = (b"GET /statistics.html?foo#bar HTTP/1.1\r\n"
               b"Host: mys-lang.org\r\n"
               b"Cache-Control: no-cache\r\n"
               b"Referer: https://mys-lang.org/\r\n"
               b"Accept-Encoding: gzip, deflate, br\r\n"
               b"\r\n")
     parser = HeaderParser(header)
-    parser.reset(len(header))
-    assert parser.read_request_line() == ("GET", "/statistics.html", "")
-    assert parser.read_line() == "Host: mys-lang.org"
-    assert parser.read_line() == "Cache-Control: no-cache"
-    assert parser.read_line() == "Referer: https://mys-lang.org/"
-    assert parser.read_line() == "Accept-Encoding: gzip, deflate, br"
-    assert parser.read_line() == ""
-    parser.reset(len(header))
-    assert parser.read_request_line() == ("GET", "/statistics.html", "")
-    assert parser.read_headers() == {"accept-encoding": "gzip, deflate, br",
-                                     "referer": "https://mys-lang.org/",
-                                     "cache-control": "no-cache",
-                                     "host": "mys-lang.org"}
+    request = parser.parse_request(len(header))
+    assert request.method == "GET"
+    assert request.path == "/statistics.html"
+    assert request.query == "foo"
+    assert request.fragment == "bar"
+    assert request.headers == {"accept-encoding": "gzip, deflate, br",
+                               "referer": "https://mys-lang.org/",
+                               "cache-control": "no-cache",
+                               "host": "mys-lang.org"}
 
 @test
-def test_parse_params():
-    assert parse_params("") == {}
-    assert parse_params("a=10") == {"a": "10"}
-    assert parse_params("a=10&foo=bar") == {"a": "10", "foo": "bar"}
+def test_request_no_query_nor_fragment():
+    header = (b"GET / HTTP/1.1\r\n"
+              b"\r\n")
+    parser = HeaderParser(header)
+    request = parser.parse_request(len(header))
+    assert request.method == "GET"
+    assert request.path == "/"
+    assert request.query is None
+    assert request.fragment is None
+    assert request.headers == {}
+
+@test
+def test_request_with_fragment():
+    header = (b"GET /#foo HTTP/1.1\r\n"
+              b"\r\n")
+    parser = HeaderParser(header)
+    request = parser.parse_request(len(header))
+    assert request.method == "GET"
+    assert request.path == "/"
+    assert request.query is None
+    assert request.fragment == "foo"
+    assert request.headers == {}
+
+@test
+def test_request_with_query():
+    header = (b"GET /?foo HTTP/1.1\r\n"
+              b"\r\n")
+    parser = HeaderParser(header)
+    request = parser.parse_request(len(header))
+    assert request.method == "GET"
+    assert request.path == "/"
+    assert request.query == "foo"
+    assert request.fragment is None
+    assert request.headers == {}
+
+@test
+def test_request_invalid_request_line():
+    header = (b" GET /statistics.html HTTP/1.1\r\n"
+              b"\r\n")
+    parser = HeaderParser(header)
+
+    try:
+        message = ""
+        parser.parse_request(len(header))
+    except HttpError as err:
+        message = err.message
+
+    assert message == "invalid header line ' GET /statistics.html HTTP/1.1'"
+
+@test
+def test_request_invalid_header_line():
+    header = (b"GET / HTTP/1.1\r\n"
+              b"Host mys-lang.org\r\n"
+              b"\r\n")
+    parser = HeaderParser(header)
+
+    try:
+        message = ""
+        parser.parse_request(len(header))
+    except HttpError as err:
+        message = err.message
+
+    assert message == "invalid header line 'Host mys-lang.org'"
+
+@test
+def test_request_remaining_data():
+    header = (b"GET / HTTP/1.1\r\n"
+              b"Host: mys-lang.org\r\n"
+              b"\r\n"
+              b"\r\n")
+    parser = HeaderParser(header)
+
+    try:
+        message = ""
+        parser.parse_request(len(header))
+    except HttpError as err:
+        message = err.message
+
+    assert message == "remaining header data"
+
+@test
+def test_parse_query():
+    assert parse_query("") == {}
+    assert parse_query("a=10") == {"a": "10"}
+    assert parse_query("a=10&foo=bar") == {"a": "10", "foo": "bar"}
+    assert parse_query("a=3&bbb=123ffds&&s=&1&=2=3") == {"1": "",
+                                                         "s": "",
+                                                         "bbb": "123ffds",
+                                                         "a": "3",
+                                                         "": "2=3"}
