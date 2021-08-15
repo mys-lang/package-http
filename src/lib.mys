@@ -1,5 +1,5 @@
-from net.tcp.client import Client as TcpClient
 from net.stcp.client import Client as StcpClient
+from net.tcp.client import Client as TcpClient
 
 class HttpError(Error):
     message: string

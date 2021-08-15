@@ -1,7 +1,6 @@
 from . import HttpError
 
-_RE_REQUEST: regex = (
-    re"^(\w+) (([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))? HTTP/1.1$")
+_RE_REQUEST: regex = re"^(\w+) (([^:/?#]+):)?(//([^/?#]*))?([^?#]*)(\?([^#]*))?(#(.*))? HTTP/1.1$"
 _RE_HEADER_LINE: regex = re"^([^:]+): (.*)$"
 _HEADER_END: bytes = b"\r\n"
 
