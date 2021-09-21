@@ -103,9 +103,7 @@ def parse_request(header: bytes) -> Request:
 
     """
 
-    parser = _HeaderParser(header)
-
-    return parser.parse_request(len(header))
+    return parse_request(header, len(header))
 
 def parse_request(header: bytes, size: u64) -> Request:
     """Parse given request header.
