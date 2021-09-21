@@ -9,8 +9,8 @@ def main(argv: [string]):
     parser.add_positional("host")
     args = parser.parse(argv)
 
-    data = get(host=args.value_of("host"),
-               port=u32(args.value_of("--port")),
-               path=args.value_of("--path"),
-               secure=args.is_present("--secure"))[1]
-    print(string(data))
+    response = get(host=args.value_of("host"),
+                   port=u32(args.value_of("--port")),
+                   path=args.value_of("--path"),
+                   secure=args.is_present("--secure"))
+    print(string(response.content))
