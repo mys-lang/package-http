@@ -139,7 +139,7 @@ def _execute(method: string,
     content_length = headers.get("content-length", None)
 
     if content_length is None:
-        data = b""
+        content = b""
 
         while True:
             chunk_length = _hex2dec(_read_line(io))
@@ -147,14 +147,14 @@ def _execute(method: string,
             if chunk_length == 0:
                 break
 
-            data += io.read(chunk_length)
+            content += io.read(chunk_length)
 
             if len(_read_line(io)) != 0:
-                raise HttpError("Bad chunked data in response.")
+                raise HttpError("Bad chunked content in response.")
     else:
-        data = io.read(u64(content_length))
+        content = io.read(u64(content_length))
 
-    return Response(headers, data)
+    return Response(headers, content)
 
 def get(host: string,
         port: u32 = 80,
@@ -169,7 +169,7 @@ def get(host: string,
     return _execute("GET", host, port, path, secure, headers)
 
 def post(host: string,
-         data: bytes,
+         content: bytes,
          port: u32 = 80,
          path: string = "/",
          secure: bool = False,
@@ -179,4 +179,4 @@ def post(host: string,
 
     """
 
-    return _execute("POST", host, port, path, secure, headers, data)
+    return _execute("POST", host, port, path, secure, headers, content)
