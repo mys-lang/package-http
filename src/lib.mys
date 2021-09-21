@@ -161,8 +161,7 @@ def get(host: string,
         path: string = "/",
         secure: bool = False,
         headers: {string: string} = {}) -> Response:
-    """Get given path from given address. Returns a tuple of received
-    headers and data.
+    """Get given path from given address.
 
     """
 
@@ -174,8 +173,7 @@ def post(host: string,
          path: string = "/",
          secure: bool = False,
          headers: {string: string} = {}) -> Response:
-    """Post given path and data to given address. Returns a tuple of
-    received headers and data.
+    """Post given path and content to given address.
 
     """
 
