@@ -4,23 +4,6 @@ from net.tcp.client import Client as TcpClient
 class HttpError(Error):
     message: string
 
-def _hex2dec(hex: string) -> u64:
-    dec: u64 = 0
-
-    for ch in hex:
-        dec *= 16
-
-        if ch >= '0' and ch <= '9':
-            dec += u64(ch - '0')
-        elif ch >= 'a' and ch <= 'f':
-            dec += 10 + u64(ch - 'a')
-        elif ch >= 'A' and ch <= 'F':
-            dec += 10 + u64(ch - 'A')
-        else:
-            raise HttpError("Bad size in chunked body response.")
-
-    return dec
-
 class Response:
     headers: {string: string}
     content: bytes
@@ -142,7 +125,7 @@ def _execute(method: string,
         content = b""
 
         while True:
-            chunk_length = _hex2dec(_read_line(io))
+            chunk_length = u64(_read_line(io), 16)
 
             if chunk_length == 0:
                 break
