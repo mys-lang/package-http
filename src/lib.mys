@@ -55,7 +55,7 @@ def _read_line(io: _Io) -> string:
     return string(line)[:-2]
 
 def _read_headers(io: _Io) -> {string: string}:
-    headers: {string: string} = {}
+    headers = {}
 
     while True:
         line = _read_line(io)

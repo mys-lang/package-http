@@ -81,7 +81,7 @@ class _HeaderParser:
         return string(self._header, offset, pos)
 
     def _parse_headers(self) -> {string: string}:
-        headers: {string: string} = {}
+        headers = {}
 
         while True:
             line = self._read_line()
@@ -119,7 +119,7 @@ def parse_query(value: string) -> {string: string}:
 
     """
 
-    params: {string: string} = {}
+    params = {}
 
     for param in value.split('&'):
         if len(param) == 0:
