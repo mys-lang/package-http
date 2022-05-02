@@ -17,6 +17,41 @@ class _Io:
     def read(self, size: u64) -> bytes:
         pass
 
+    def read_line(self) -> string:
+        line = b""
+
+        while True:
+            byte = self.read(1)
+
+            if len(byte) != 1:
+                raise HttpError("Handshake failed.")
+
+            line += byte
+
+            if len(line) < 2:
+                continue
+
+            if line[-2] == u8('\r') and line[-1] == u8('\n'):
+                break
+
+        return string(line)[:-2]
+
+    def read_headers(self) -> {string: string}:
+        headers: {string: string} = {}
+
+        while True:
+            line = self.read_line()
+
+            if len(line) == 0:
+                break
+
+            mo = line.match(re"^([^:]+): (.*)$")
+
+            if mo is not None:
+                headers[mo.group(1).lower()] = mo.group(2)
+
+        return headers
+
 class _TcpIo(_Io):
     client: TcpClient
 
@@ -34,41 +69,6 @@ class _StcpIo(_Io):
 
     def read(self, size: u64) -> bytes:
         return self.client.read(size)
-
-def _read_line(io: _Io) -> string:
-    line = b""
-
-    while True:
-        byte = io.read(1)
-
-        if len(byte) != 1:
-            raise HttpError("Handshake failed.")
-
-        line += byte
-
-        if len(line) < 2:
-            continue
-
-        if line[-2] == u8('\r') and line[-1] == u8('\n'):
-            break
-
-    return string(line)[:-2]
-
-def _read_headers(io: _Io) -> {string: string}:
-    headers = {}
-
-    while True:
-        line = _read_line(io)
-
-        if len(line) == 0:
-            break
-
-        mo = line.match(re"^([^:]+): (.*)$")
-
-        if mo is not None:
-            headers[mo.group(1).lower()] = mo.group(2)
-
-    return headers
 
 def _execute(method: string,
              host: string,
@@ -112,27 +112,27 @@ def _execute(method: string,
         request_bytes += data
 
     io.write(request_bytes)
-    line = _read_line(io)
+    line = io.read_line()
     mo = line.match(re"^HTTP/1.1 200 OK$")
 
     if mo is None:
         raise HttpError(f"Unsuccessful status in response ({line}).")
 
-    headers = _read_headers(io)
+    headers = io.read_headers()
     content_length = headers.get("content-length", None)
 
     if content_length is None:
         content = b""
 
         while True:
-            chunk_length = u64(_read_line(io), 16)
+            chunk_length = u64(io.read_line(), 16)
 
             if chunk_length == 0:
                 break
 
             content += io.read(chunk_length)
 
-            if len(_read_line(io)) != 0:
+            if len(io.read_line()) != 0:
                 raise HttpError("Bad chunked content in response.")
     else:
         content = io.read(u64(content_length))
