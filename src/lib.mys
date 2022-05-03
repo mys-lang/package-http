@@ -1,5 +1,6 @@
 from net.stcp.client import Client as StcpClient
 from net.tcp.client import Client as TcpClient
+from io.buffered_reader import BufferedReader
 
 class HttpError(Error):
     message: string
@@ -53,22 +54,32 @@ class _Io:
         return headers
 
 class _TcpIo(_Io):
-    client: TcpClient
+    _client: TcpClient
+    _buffered_reader: BufferedReader
+
+    def __init__(self, client: TcpClient):
+        self._client = client
+        self._buffered_reader = BufferedReader(client)
 
     def write(self, data: bytes):
-        self.client.write(data)
+        self._client.write(data)
 
     def read(self, size: u64) -> bytes:
-        return self.client.read(size)
+        return self._buffered_reader.read(size)
 
 class _StcpIo(_Io):
-    client: StcpClient
+    _client: StcpClient
+    _buffered_reader: BufferedReader
+
+    def __init__(self, client: StcpClient):
+        self._client = client
+        self._buffered_reader = BufferedReader(client)
 
     def write(self, data: bytes):
-        self.client.write(data)
+        self._client.write(data)
 
     def read(self, size: u64) -> bytes:
-        return self.client.read(size)
+        return self._buffered_reader.read(size)
 
 def _execute(method: string,
              host: string,
