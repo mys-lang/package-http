@@ -19,23 +19,7 @@ class _Io:
         pass
 
     def read_line(self) -> string:
-        line = b""
-
-        while True:
-            byte = self.read(1)
-
-            if len(byte) != 1:
-                raise HttpError("Handshake failed.")
-
-            line += byte
-
-            if len(line) < 2:
-                continue
-
-            if line[-2] == u8('\r') and line[-1] == u8('\n'):
-                break
-
-        return string(line)[:-2]
+        pass
 
     def read_headers(self) -> {string: string}:
         headers: {string: string} = {}
@@ -53,6 +37,14 @@ class _Io:
 
         return headers
 
+def read_line(buffered_reader: BufferedReader) -> string:
+    line = buffered_reader.read_until(b"\r\n", keep_pattern=False)
+
+    if line is None:
+        return ""
+    else:
+        return string(line)
+
 class _TcpIo(_Io):
     _client: TcpClient
     _buffered_reader: BufferedReader
@@ -67,6 +59,9 @@ class _TcpIo(_Io):
     def read(self, size: u64) -> bytes:
         return self._buffered_reader.read(size)
 
+    def read_line(self) -> string:
+        return read_line(self._buffered_reader)
+
 class _StcpIo(_Io):
     _client: StcpClient
     _buffered_reader: BufferedReader
@@ -80,6 +75,9 @@ class _StcpIo(_Io):
 
     def read(self, size: u64) -> bytes:
         return self._buffered_reader.read(size)
+
+    def read_line(self) -> string:
+        return read_line(self._buffered_reader)
 
 def _execute(method: string,
              host: string,
