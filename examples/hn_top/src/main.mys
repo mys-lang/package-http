@@ -13,13 +13,13 @@ class Story:
     by: string
     descendants: i64
 
-def http_get(path: string) -> string:
+func http_get(path: string) -> string:
     return string(get("hacker-news.firebaseio.com",
                       path=f"/v0/{path}",
                       port=443,
                       secure=True).content)
 
-def fetch_story(id: i64) -> Story:
+func fetch_story(id: i64) -> Story:
     response = json_decode(http_get(f"item/{id}.json")).get_object()
 
     if "descendants" in response:
@@ -33,7 +33,7 @@ def fetch_story(id: i64) -> Story:
                  response["by"].get_string(),
                  descendants)
 
-def fetch_top_stories(count: u32) -> [Story]:
+func fetch_top_stories(count: u32) -> [Story]:
     response = json_decode(http_get(f"topstories.json"))
     stories: [Story] = []
 
@@ -42,7 +42,7 @@ def fetch_top_stories(count: u32) -> [Story]:
 
     return stories
 
-def main(argv: [string]):
+func main(argv: [string]):
     parser = Parser("hn_top")
     parser.add_option("--count",
                       "-c",

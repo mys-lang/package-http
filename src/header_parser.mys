@@ -25,7 +25,7 @@ class _HeaderParser:
     _offset: i64
     _size: i64
 
-    def __init__(self, header: bytes):
+    func __init__(self, header: bytes):
         """Initialize the parser with given header buffer. Call reset() before
         reading from the header.
 
@@ -35,7 +35,7 @@ class _HeaderParser:
         self._offset = 0
         self._size = 0
 
-    def parse_request(self, size: u64) -> Request:
+    func parse_request(self, size: u64) -> Request:
         """Parse a request of given size from start of header buffer.
 
         """
@@ -68,7 +68,7 @@ class _HeaderParser:
 
         return request
 
-    def _read_line(self) -> string:
+    func _read_line(self) -> string:
         """Returns the next header line. Returns the empty string if no more
         lines are available.
 
@@ -80,7 +80,7 @@ class _HeaderParser:
 
         return string(self._header, offset, pos)
 
-    def _parse_headers(self) -> {string: string}:
+    func _parse_headers(self) -> {string: string}:
         headers = {}
 
         while True:
@@ -98,14 +98,14 @@ class _HeaderParser:
 
         return headers
 
-def parse_request(header: bytes) -> Request:
+func parse_request(header: bytes) -> Request:
     """Parse given request header.
 
     """
 
     return parse_request(header, len(header))
 
-def parse_request(header: bytes, size: u64) -> Request:
+func parse_request(header: bytes, size: u64) -> Request:
     """Parse given request header.
 
     """
@@ -114,7 +114,7 @@ def parse_request(header: bytes, size: u64) -> Request:
 
     return parser.parse_request(size)
 
-def parse_query(value: string) -> {string: string}:
+func parse_query(value: string) -> {string: string}:
     """Parse given parameters and return them as a dictionary.
 
     """
@@ -135,7 +135,7 @@ def parse_query(value: string) -> {string: string}:
     return params
 
 @test
-def test_request():
+func test_request():
     header = (b"GET /statistics.html?foo#bar HTTP/1.1\r\n"
               b"Host: mys-lang.org\r\n"
               b"Cache-Control: no-cache\r\n"
@@ -153,7 +153,7 @@ def test_request():
                                "host": "mys-lang.org"}
 
 @test
-def test_request_no_query_nor_fragment():
+func test_request_no_query_nor_fragment():
     header = (b"GET / HTTP/1.1\r\n"
               b"\r\n")
     request = parse_request(header)
@@ -165,7 +165,7 @@ def test_request_no_query_nor_fragment():
     assert request.headers == {}
 
 @test
-def test_request_with_fragment():
+func test_request_with_fragment():
     header = (b"GET /#foo HTTP/1.1\r\n"
               b"\r\n")
     request = parse_request(header)
@@ -177,7 +177,7 @@ def test_request_with_fragment():
     assert request.headers == {}
 
 @test
-def test_request_with_query():
+func test_request_with_query():
     header = (b"GET /?foo HTTP/1.1\r\n"
               b"\r\n")
     request = parse_request(header)
@@ -189,7 +189,7 @@ def test_request_with_query():
     assert request.headers == {}
 
 @test
-def test_request_invalid_request_line():
+func test_request_invalid_request_line():
     header = (b" GET /statistics.html HTTP/1.1\r\n"
               b"\r\n")
 
@@ -202,7 +202,7 @@ def test_request_invalid_request_line():
     assert message == "invalid header line ' GET /statistics.html HTTP/1.1'"
 
 @test
-def test_request_invalid_header_line():
+func test_request_invalid_header_line():
     header = (b"GET / HTTP/1.1\r\n"
               b"Host mys-lang.org\r\n"
               b"\r\n")
@@ -216,7 +216,7 @@ def test_request_invalid_header_line():
     assert message == "invalid header line 'Host mys-lang.org'"
 
 @test
-def test_request_remaining_data():
+func test_request_remaining_data():
     header = (b"GET / HTTP/1.1\r\n"
               b"Host: mys-lang.org\r\n"
               b"\r\n"
@@ -231,7 +231,7 @@ def test_request_remaining_data():
     assert message == "remaining header data"
 
 @test
-def test_request_with_size():
+func test_request_with_size():
     header = (b"GET / HTTP/1.1\r\n"
               b"Host: mys-lang.org\r\n"
               b"\r\n"
@@ -245,7 +245,7 @@ def test_request_with_size():
     assert request.headers == {"host": "mys-lang.org"}
 
 @test
-def test_parse_query():
+func test_parse_query():
     assert parse_query("") == {}
     assert parse_query("a=10") == {"a": "10"}
     assert parse_query("a=10&foo=bar") == {"a": "10", "foo": "bar"}
