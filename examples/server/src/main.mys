@@ -1,0 +1,22 @@
+from http.server import StringResponse
+from http.server import Request
+from http.server import Response
+from http.server import Route
+from http.server import Server
+from http.server import Status
+
+class HelloRoute(Route):
+
+    func on_get(self, request: Request) -> Response:
+        return StringResponse("Hello!\n")
+
+class HiRoute(Route):
+
+    func on_get(self, request: Request) -> Response:
+        return StringResponse("Hi!\n")
+
+func main():
+    server = Server()
+    server.add_route("/hello.html", HelloRoute())
+    server.add_route("/hi.html", HiRoute())
+    server.serve()

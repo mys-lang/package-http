@@ -1,0 +1,203 @@
+from net.tcp.server import Server
+from net.tcp.server import Client
+from os.path import Path
+
+@enum
+class Status:
+    """HTTP response status codes.
+
+    """
+
+    Continue = 100
+    Ok = 200
+    Found = 302
+    BadRequest = 400
+    Unauthorized = 401
+    NotFound = 404
+    MethodNotAllowed = 405
+    InternalServerError = 500
+
+STATUS_STRINGS: {i64: string} = {
+    i64(Status.Continue): "Continue",
+    i64(Status.Ok): "OK",
+    i64(Status.Found): "Found",
+    i64(Status.BadRequest): "Bad Request",
+    i64(Status.Unauthorized): "Unauthorized",
+    i64(Status.NotFound): "Not Found",
+    i64(Status.MethodNotAllowed): "Method Not Allowed",
+    i64(Status.InternalServerError): "Internal Server Error"
+}
+
+class ResponseError(Error):
+    status: Status
+
+@trait
+class Path:
+    """A route path.
+
+    """
+
+    func match(self, path: string) -> (bool, [string]):
+        pass
+
+class StringPath(Path):
+    """A string route path.
+
+    """
+
+    path: string
+
+    func match(self, path: string) -> (bool, [string]):
+        return (path == self.path, None)
+
+class RegexPath(Path):
+    """A regex route path.
+
+    """
+
+    _regex: regex
+
+    func __init__(self, regex: regex):
+        self._regex = regex
+
+    func match(self, path: string) -> (bool, [string]):
+        mo = self._regex.match(path)
+
+        return (mo is not None, mo.groups())
+
+@trait
+class Route:
+    """A route.
+
+    """
+
+    func on_get(self, request: Request) -> Response:
+        """Handle a GET request.
+
+        """
+
+    func on_post(self, request: Request) -> Response:
+        """Handle a POST request.
+
+        """
+
+        # ToDo: Should raise method not supported error.
+        return None
+
+class Request:
+    path: string
+    method: string
+    matches: [string]
+
+    func __init__(self, path: string, method: string):
+        self.path = path
+        self.method = method
+
+@trait
+class Response:
+    """A response.
+
+    """
+
+    func write(self, client: Client):
+        pass
+
+class StringResponse(Response):
+    status: Status
+    data: string
+
+    func __init__(self, data: string, status: Status = Status.Ok):
+        self.status = status
+        self.data = data
+
+    func write(self, client: Client):
+        body = self.data.to_utf8()
+        client.write(f"HTTP/1.0 200 OK\r\n"
+                     f"Content-Length: {len(body)}\r\n"
+                     f"\r\n".to_utf8())
+        client.write(self.data.to_utf8())
+
+class FileResponse(Response):
+    status: Status
+    path: Path
+
+    func __init__(self, path: Path, status: Status = Status.Ok):
+        self.status = status
+        self.path = path
+
+    func write(self, client: Client):
+        client.write(b"HTTP/1.0 200 OK\r\n\r\n")
+
+class EmptyResponse(Response):
+    status: Status
+
+    func __init__(self, status: Status = Status.Ok):
+        self.status = status
+
+    func write(self, client: Client):
+        status = i64(self.status)
+        client.write(f"HTTP/1.0 {status} {STATUS_STRINGS[status]}\r\n\r\n".to_utf8())
+
+class Server:
+    """A HTTP server.
+
+    """
+
+    _routes: [(Path, Route)]
+
+    func __init__(self):
+        self._routes = []
+
+    func add_route(self, path: string, route: Route):
+        """Add a route for given path.
+
+        """
+
+        self._routes.append((StringPath(path), route))
+
+    func serve(self):
+        """Serve HTTP requests.
+
+        """
+
+        server = Server()
+        server.listen(8080)
+
+        while True:
+            client = server.accept()
+            request = Request("/hi.html", "GET")
+            response: Response = None
+
+            try:
+                response = self._handle_request(request)
+            except ResponseError as error:
+                response = EmptyResponse(error.status)
+            except Error:
+                response = EmptyResponse(Status.InternalServerError)
+
+            # ToDo: Remove once raise in on_*() works.
+            if response is None:
+                response = EmptyResponse(Status.MethodNotAllowed)
+
+            response.write(client)
+            client.disconnect()
+
+    func _handle_request(self, request: Request) -> Response:
+        route, request.matches = self._find_route(request.path)
+
+        match request.method:
+            case "GET":
+                return route.on_get(request)
+            case "POST":
+                return route.on_post(request)
+            case _:
+                raise ResponseError(Status.MethodNotAllowed)
+
+    func _find_route(self, request_path: string) -> (Route, [string]):
+        for path, route in self._routes:
+            is_match, matches = path.match(request_path)
+
+            if is_match:
+                return route, matches
+
+        raise ResponseError(Status.NotFound)

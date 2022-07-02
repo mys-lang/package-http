@@ -22,6 +22,11 @@ http.header_parser — Header parser
 
 .. mysfile:: src/header_parser.mys
 
+http.server — A HTTP server
+---------------------------
+
+.. mysfile:: src/server.mys
+
 .. |discord| image:: https://img.shields.io/discord/777073391320170507?label=Discord&logo=discord&logoColor=white
 .. _discord: https://discord.gg/GFDN7JvWKS
 

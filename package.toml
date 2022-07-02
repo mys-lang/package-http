@@ -7,3 +7,4 @@ description = "HTTP."
 [dependencies]
 net = "latest"
 io = "latest"
+os = "latest"
