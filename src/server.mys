@@ -4,7 +4,7 @@ from os.path import Path as OsPath
 from http.header_parser import parse_request
 from http import HttpError
 from io.buffered_reader import BufferedReader
-#from http.header_parser import Request
+from fiber import Fiber
 
 HEADERS_END: bytes = b"\r\n\r\n"
 
@@ -148,6 +148,63 @@ class EmptyResponse(Response):
         status = i64(self.status)
         client.write(f"HTTP/1.0 {status} {STATUS_STRINGS[status]}\r\n\r\n".to_utf8())
 
+class _Client(Fiber):
+    client: Client
+    routes: [(Path, Route)]
+
+    func run(self):
+        try:
+            self._serve()
+        except Error:
+            pass
+
+        self.client.disconnect()
+
+    func _serve(self):
+        buffered_reader = BufferedReader(self.client, 1024)
+        header = buffered_reader.read_until(HEADERS_END)
+
+        if header is None:
+            return
+
+        request_header = parse_request(header, len(header))
+        request = Request(request_header.path, request_header.method)
+        response: Response = None
+
+        try:
+            response = self._handle_request(request)
+        except ResponseError as error:
+            response = EmptyResponse(error.status)
+        except Error:
+            response = EmptyResponse(Status.InternalServerError)
+
+        # ToDo: Remove once raise in on_*() works.
+        if response is None:
+            response = EmptyResponse(Status.MethodNotAllowed)
+
+        response.write(self.client)
+
+    func _handle_request(self, request: Request) -> Response:
+        route, request.matches = self._find_route(request.path)
+
+        match request.method:
+            case "GET":
+                return route.on_get(request)
+            case "POST":
+                return route.on_post(request)
+            case _:
+                raise ResponseError(Status.MethodNotAllowed)
+
+    func _find_route(self, request_path: string) -> (Route, [string]):
+        for path, route in self.routes:
+            is_match, matches = path.match(request_path)
+
+            if is_match:
+                return route, matches
+
+        raise ResponseError(Status.NotFound)
+
+
 class Server:
     """A HTTP server.
 
@@ -183,54 +240,5 @@ class Server:
 
         while True:
             client = server.accept()
-
-            try:
-                self._serve_client(client)
-            except Error:
-                pass
-
-            client.disconnect()
-
-    func _serve_client(self, client: Client):
-        buffered_reader = BufferedReader(client, 1024)
-        header = buffered_reader.read_until(HEADERS_END)
-
-        if header is None:
-            return
-
-        request_header = parse_request(header, len(header))
-        request = Request(request_header.path, request_header.method)
-        response: Response = None
-
-        try:
-            response = self._handle_request(request)
-        except ResponseError as error:
-            response = EmptyResponse(error.status)
-        except Error:
-            response = EmptyResponse(Status.InternalServerError)
-
-        # ToDo: Remove once raise in on_*() works.
-        if response is None:
-            response = EmptyResponse(Status.MethodNotAllowed)
-
-        response.write(client)
-
-    func _handle_request(self, request: Request) -> Response:
-        route, request.matches = self._find_route(request.path)
-
-        match request.method:
-            case "GET":
-                return route.on_get(request)
-            case "POST":
-                return route.on_post(request)
-            case _:
-                raise ResponseError(Status.MethodNotAllowed)
-
-    func _find_route(self, request_path: string) -> (Route, [string]):
-        for path, route in self._routes:
-            is_match, matches = path.match(request_path)
-
-            if is_match:
-                return route, matches
-
-        raise ResponseError(Status.NotFound)
+            client_fiber = _Client(client, self._routes)
+            client_fiber.start()
