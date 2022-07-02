@@ -1,6 +1,12 @@
 from net.tcp.server import Server
 from net.tcp.server import Client
-from os.path import Path
+from os.path import Path as OsPath
+from http.header_parser import parse_request
+from http import HttpError
+from io.buffered_reader import BufferedReader
+#from http.header_parser import Request
+
+HEADERS_END: bytes = b"\r\n\r\n"
 
 @enum
 class Status:
@@ -115,18 +121,22 @@ class StringResponse(Response):
         client.write(f"HTTP/1.0 200 OK\r\n"
                      f"Content-Length: {len(body)}\r\n"
                      f"\r\n".to_utf8())
-        client.write(self.data.to_utf8())
+        client.write(body)
 
 class FileResponse(Response):
     status: Status
-    path: Path
+    path: OsPath
 
-    func __init__(self, path: Path, status: Status = Status.Ok):
+    func __init__(self, path: OsPath, status: Status = Status.Ok):
         self.status = status
         self.path = path
 
     func write(self, client: Client):
-        client.write(b"HTTP/1.0 200 OK\r\n\r\n")
+        body = self.path.read_binary()
+        client.write(f"HTTP/1.0 200 OK\r\n"
+                     f"Content-Length: {len(body)}\r\n"
+                     f"\r\n".to_utf8())
+        client.write(body)
 
 class EmptyResponse(Response):
     status: Status
@@ -155,6 +165,14 @@ class Server:
 
         self._routes.append((StringPath(path), route))
 
+    # ToDo: Should be overloaded add_route().
+    func add_route_regex(self, path: regex, route: Route):
+        """Add a route for given path.
+
+        """
+
+        self._routes.append((RegexPath(path), route))
+
     func serve(self):
         """Serve HTTP requests.
 
@@ -165,22 +183,37 @@ class Server:
 
         while True:
             client = server.accept()
-            request = Request("/hi.html", "GET")
-            response: Response = None
 
             try:
-                response = self._handle_request(request)
-            except ResponseError as error:
-                response = EmptyResponse(error.status)
+                self._serve_client(client)
             except Error:
-                response = EmptyResponse(Status.InternalServerError)
+                pass
 
-            # ToDo: Remove once raise in on_*() works.
-            if response is None:
-                response = EmptyResponse(Status.MethodNotAllowed)
-
-            response.write(client)
             client.disconnect()
+
+    func _serve_client(self, client: Client):
+        buffered_reader = BufferedReader(client, 1024)
+        header = buffered_reader.read_until(HEADERS_END)
+
+        if header is None:
+            return
+
+        request_header = parse_request(header, len(header))
+        request = Request(request_header.path, request_header.method)
+        response: Response = None
+
+        try:
+            response = self._handle_request(request)
+        except ResponseError as error:
+            response = EmptyResponse(error.status)
+        except Error:
+            response = EmptyResponse(Status.InternalServerError)
+
+        # ToDo: Remove once raise in on_*() works.
+        if response is None:
+            response = EmptyResponse(Status.MethodNotAllowed)
+
+        response.write(client)
 
     func _handle_request(self, request: Request) -> Response:
         route, request.matches = self._find_route(request.path)

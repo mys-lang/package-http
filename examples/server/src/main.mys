@@ -1,21 +1,16 @@
-from http.server import StringResponse
+from os.path import Path
+from http.server import FileResponse
 from http.server import Request
 from http.server import Response
 from http.server import Route
 from http.server import Server
 
-class HelloRoute(Route):
+class FileRoute(Route):
 
     func on_get(self, request: Request) -> Response:
-        return StringResponse("Hello!\n")
-
-class HiRoute(Route):
-
-    func on_get(self, request: Request) -> Response:
-        return StringResponse("Hi!\n")
+        return FileResponse(Path(".").join(request.path))
 
 func main():
     server = Server()
-    server.add_route("/hello.html", HelloRoute())
-    server.add_route("/hi.html", HiRoute())
+    server.add_route_regex(re".*", FileRoute())
     server.serve()
