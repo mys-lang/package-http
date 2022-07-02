@@ -1,14 +1,17 @@
-from os.path import Path
 from http.server import FileResponse
 from http.server import Request
 from http.server import Response
 from http.server import Route
 from http.server import Server
+from os.path import Path
 
 class FileRoute(Route):
 
     func on_get(self, request: Request) -> Response:
-        return FileResponse(Path(".").join(request.path))
+        path = Path(".").join(request.path)
+        print("GET:", path)
+
+        return FileResponse(path)
 
 func main():
     server = Server()
