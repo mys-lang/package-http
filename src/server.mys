@@ -173,13 +173,13 @@ class Server:
 
         self._routes.append((RegexPath(path), route))
 
-    func serve(self):
+    func serve(self, port: u32):
         """Serve HTTP requests.
 
         """
 
         server = Server()
-        server.listen(8080)
+        server.listen(port)
 
         while True:
             client = server.accept()

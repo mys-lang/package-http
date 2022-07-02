@@ -15,4 +15,4 @@ class FileRoute(Route):
 func main():
     server = Server()
     server.add_route_regex(re".*", FileRoute())
-    server.serve()
+    server.serve(port=8080)
