@@ -8,10 +8,9 @@ from os.path import Path
 class FileRoute(Route):
 
     func on_get(self, request: Request) -> Response:
-        path = Path(".").join(request.path)
-        print("GET:", path)
+        print("GET:", request.path)
 
-        return FileResponse(path)
+        return FileResponse(Path(".").join(request.path))
 
 func main():
     server = Server()
