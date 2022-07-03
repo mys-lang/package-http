@@ -82,8 +82,19 @@ class Route:
 
         """
 
+        # ToDo: Should raise method not supported error.
+        return None
+
     func on_post(self, request: Request) -> Response:
         """Handle a POST request.
+
+        """
+
+        # ToDo: Should raise method not supported error.
+        return None
+
+    func on_delete(self, request: Request) -> Response:
+        """Handle a DELETE request.
 
         """
 
@@ -94,10 +105,13 @@ class Request:
     path: string
     method: string
     matches: [string]
+    headers: {string: string}
 
     func __init__(self, path: string, method: string):
         self.path = path
         self.method = method
+        self.matches = []
+        self.headers = {}
 
 @trait
 class Response:
@@ -192,6 +206,8 @@ class _Client(Fiber):
                 return route.on_get(request)
             case "POST":
                 return route.on_post(request)
+            case "DELETE":
+                return route.on_delete(request)
             case _:
                 raise ResponseError(Status.MethodNotAllowed)
 
