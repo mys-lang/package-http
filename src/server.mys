@@ -102,16 +102,13 @@ class Route:
         return None
 
 class Request:
-    path: string
     method: string
-    matches: [string]
+    path: string
+    query: string
+    params: {string: string}
+    fragment: string
     headers: {string: string}
-
-    func __init__(self, path: string, method: string):
-        self.path = path
-        self.method = method
-        self.matches = []
-        self.headers = {}
+    matches: [string]
 
 @trait
 class Response:
@@ -182,7 +179,13 @@ class _Client(Fiber):
             return
 
         request_header = parse_request(header, len(header))
-        request = Request(request_header.path, request_header.method)
+        request = Request(request_header.method,
+                          request_header.path,
+                          request_header.query,
+                          request_header.params,
+                          request_header.fragment,
+                          request_header.headers,
+                          [])
         response: Response = None
 
         try:
