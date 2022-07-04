@@ -1,10 +1,12 @@
-from net.tcp.server import Server
+from net.tcp.server import Server as TcpServer
 from net.tcp.server import Client
 from os.path import Path as OsPath
+from os.temporary import Directory as TemporaryDirectory
 from http.header_parser import parse_request
 from http import HttpError
 from io.buffered_reader import BufferedReader
 from fiber import Fiber
+from http import get
 
 HEADERS_END: bytes = b"\r\n\r\n"
 
@@ -69,7 +71,10 @@ class RegexPath(Path):
     func match(self, path: string) -> (bool, [string]):
         mo = self._regex.match(path)
 
-        return (mo is not None, mo.groups())
+        if mo is None:
+            return (False, None)
+        else:
+            return (True, mo.groups())
 
 @trait
 class Route:
@@ -129,7 +134,7 @@ class StringResponse(Response):
 
     func write(self, client: Client):
         body = self.data.to_utf8()
-        client.write(f"HTTP/1.0 200 OK\r\n"
+        client.write(f"HTTP/1.1 200 OK\r\n"
                      f"Content-Length: {len(body)}\r\n"
                      f"\r\n".to_utf8())
         client.write(body)
@@ -144,7 +149,7 @@ class FileResponse(Response):
 
     func write(self, client: Client):
         body = self.path.read_binary()
-        client.write(f"HTTP/1.0 200 OK\r\n"
+        client.write(f"HTTP/1.1 200 OK\r\n"
                      f"Content-Length: {len(body)}\r\n"
                      f"\r\n".to_utf8())
         client.write(body)
@@ -157,7 +162,7 @@ class EmptyResponse(Response):
 
     func write(self, client: Client):
         status = i64(self.status)
-        client.write(f"HTTP/1.0 {status} {STATUS_STRINGS[status]}\r\n\r\n".to_utf8())
+        client.write(f"HTTP/1.1 {status} {STATUS_STRINGS[status]}\r\n\r\n".to_utf8())
 
 class _Client(Fiber):
     client: Client
@@ -185,7 +190,7 @@ class _Client(Fiber):
                           request_header.params,
                           request_header.fragment,
                           request_header.headers,
-                          [])
+                          None)
         response: Response = None
 
         try:
@@ -254,10 +259,50 @@ class Server:
 
         """
 
-        server = Server()
+        server = TcpServer()
         server.listen(port)
 
         while True:
             client = server.accept()
             client_fiber = _Client(client, self._routes)
             client_fiber.start()
+
+class _GetStringRoute(Route):
+
+    func on_get(self, request: Request) -> Response:
+        return StringResponse("Hello!")
+
+class _GetFileRoute(Route):
+
+    func on_get(self, request: Request) -> Response:
+        return FileResponse(OsPath(request.path))
+
+class _BasicServer(Fiber):
+    port: u32
+
+    func run(self):
+        try:
+            server = Server()
+            server.add_route("/index.html", _GetStringRoute())
+            server.add_route_regex(re"/.*", _GetFileRoute())
+            server.serve(self.port)
+        except:
+            pass
+
+@test
+func test_basic():
+    port: u32 = 50654
+    server = _BasicServer(port)
+    server.start()
+    assert get("localhost", port, "/index.html").content == b"Hello!"
+
+    tmpdir = TemporaryDirectory()
+    a_txt = tmpdir.path().join("a.txt")
+    a_txt.write_text("Foo!")
+    assert get("localhost", port, str(a_txt)).content == b"Foo!"
+    b_txt = tmpdir.path().join("b.txt")
+    b_txt.write_text("Bar!")
+    assert get("localhost", port, str(b_txt)).content == b"Bar!"
+
+    server.cancel()
+    server.join()
