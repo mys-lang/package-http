@@ -299,10 +299,10 @@ func test_basic():
     tmpdir = TemporaryDirectory()
     a_txt = tmpdir.path().join("a.txt")
     a_txt.write_text("Foo!")
-    assert get("localhost", port, str(a_txt)).content == b"Foo!"
+    assert get("localhost", port, a_txt.to_string()).content == b"Foo!"
     b_txt = tmpdir.path().join("b.txt")
     b_txt.write_text("Bar!")
-    assert get("localhost", port, str(b_txt)).content == b"Bar!"
+    assert get("localhost", port, b_txt.to_string()).content == b"Bar!"
 
     server.cancel()
     server.join()
