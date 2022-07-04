@@ -8,7 +8,7 @@ from io.buffered_reader import BufferedReader
 from fiber import Fiber
 from http import get
 
-HEADERS_END: bytes = b"\r\n\r\n"
+_HEADERS_END: bytes = b"\r\n\r\n"
 
 @enum
 class Status:
@@ -25,7 +25,7 @@ class Status:
     MethodNotAllowed = 405
     InternalServerError = 500
 
-STATUS_STRINGS: {i64: string} = {
+_STATUS_STRINGS: {i64: string} = {
     i64(Status.Continue): "Continue",
     i64(Status.Ok): "OK",
     i64(Status.Found): "Found",
@@ -46,7 +46,9 @@ class Path:
     """
 
     func match(self, path: string) -> (bool, [string]):
-        pass
+        """Match against given path.
+
+        """
 
 class StringPath(Path):
     """A string route path.
@@ -122,7 +124,9 @@ class Response:
     """
 
     func write(self, client: Client):
-        pass
+        """Write the response to the client.
+
+        """
 
 class StringResponse(Response):
     status: Status
@@ -162,7 +166,7 @@ class EmptyResponse(Response):
 
     func write(self, client: Client):
         status = i64(self.status)
-        client.write(f"HTTP/1.1 {status} {STATUS_STRINGS[status]}\r\n\r\n".to_utf8())
+        client.write(f"HTTP/1.1 {status} {_STATUS_STRINGS[status]}\r\n\r\n".to_utf8())
 
 class _Client(Fiber):
     client: Client
@@ -178,7 +182,7 @@ class _Client(Fiber):
 
     func _serve(self):
         buffered_reader = BufferedReader(self.client, 1024)
-        header = buffered_reader.read_until(HEADERS_END)
+        header = buffered_reader.read_until(_HEADERS_END)
 
         if header is None:
             return
