@@ -1,6 +1,6 @@
 from net.tcp.server import Server as TcpServer
 from net.tcp.server import Client
-from os.path import Path as OsPath
+from os.path import Path
 from os.temporary import Directory as TemporaryDirectory
 from http.header_parser import parse_request
 from http import HttpError
@@ -145,9 +145,9 @@ class StringResponse(Response):
 
 class FileResponse(Response):
     status: Status
-    path: OsPath
+    path: Path
 
-    func __init__(self, path: OsPath, status: Status = Status.Ok):
+    func __init__(self, path: Path, status: Status = Status.Ok):
         self.status = status
         self.path = path
 
@@ -279,7 +279,7 @@ class _GetStringRoute(Route):
 class _GetFileRoute(Route):
 
     func on_get(self, request: Request) -> Response:
-        return FileResponse(OsPath(request.path))
+        return FileResponse(Path(request.path))
 
 class _BasicServer(Fiber):
     port: u32
