@@ -40,7 +40,7 @@ class ResponseError(Error):
     status: Status
 
 @trait
-class Path:
+class _Path:
     """A route path.
 
     """
@@ -50,7 +50,7 @@ class Path:
 
         """
 
-class StringPath(Path):
+class _StringPath(_Path):
     """A string route path.
 
     """
@@ -60,7 +60,7 @@ class StringPath(Path):
     func match(self, path: string) -> (bool, [string]):
         return (path == self.path, None)
 
-class RegexPath(Path):
+class _RegexPath(_Path):
     """A regex route path.
 
     """
@@ -139,7 +139,7 @@ class StringResponse(Response):
     func write(self, client: Client):
         body = self.data.to_utf8()
         client.write(f"HTTP/1.1 200 OK\r\n"
-                     f"Content-Length: {len(body)}\r\n"
+                     f"Content-Length: {len(body)}\r\n"   #
                      f"\r\n".to_utf8())
         client.write(body)
 
@@ -170,7 +170,7 @@ class EmptyResponse(Response):
 
 class _Client(Fiber):
     client: Client
-    routes: [(Path, Route)]
+    routes: [(_Path, Route)]
 
     func run(self):
         try:
@@ -238,7 +238,7 @@ class Server:
 
     """
 
-    _routes: [(Path, Route)]
+    _routes: [(_Path, Route)]
 
     func __init__(self):
         self._routes = []
@@ -248,7 +248,7 @@ class Server:
 
         """
 
-        self._routes.append((StringPath(path), route))
+        self._routes.append((_StringPath(path), route))
 
     # ToDo: Should be overloaded add_route().
     func add_route_regex(self, path: regex, route: Route):
@@ -256,7 +256,7 @@ class Server:
 
         """
 
-        self._routes.append((RegexPath(path), route))
+        self._routes.append((_RegexPath(path), route))
 
     func serve(self, port: u32):
         """Serve HTTP requests.
