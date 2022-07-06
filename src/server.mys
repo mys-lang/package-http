@@ -41,30 +41,17 @@ class ResponseError(Error):
 
 @trait
 class _Path:
-    """A route path.
-
-    """
 
     func match(self, path: string) -> (bool, [string]):
-        """Match against given path.
-
-        """
+        pass
 
 class _StringPath(_Path):
-    """A string route path.
-
-    """
-
     path: string
 
     func match(self, path: string) -> (bool, [string]):
         return (path == self.path, None)
 
 class _RegexPath(_Path):
-    """A regex route path.
-
-    """
-
     _regex: regex
 
     func __init__(self, regex: regex):
