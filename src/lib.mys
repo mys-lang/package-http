@@ -9,8 +9,7 @@ class Response:
     headers: {string: string}
     content: bytes
 
-@trait
-class _Io:
+trait _Io:
 
     func write(self, data: bytes):
         pass

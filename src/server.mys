@@ -39,8 +39,7 @@ _STATUS_STRINGS: {i64: string} = {
 class ResponseError(Error):
     status: Status
 
-@trait
-class _Path:
+trait _Path:
 
     func match(self, path: string) -> (bool, [string]):
         pass
@@ -65,8 +64,7 @@ class _RegexPath(_Path):
         else:
             return (True, mo.groups())
 
-@trait
-class Route:
+trait Route:
     """A route.
 
     """
@@ -104,8 +102,7 @@ class Request:
     headers: {string: string}
     matches: [string]
 
-@trait
-class Response:
+trait Response:
     """A response.
 
     """
