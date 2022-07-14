@@ -134,8 +134,7 @@ func parse_query(value: string) -> {string: string}:
 
     return params
 
-@test
-func test_request():
+test request():
     header = (b"GET /statistics.html?foo#bar HTTP/1.1\r\n"
               b"Host: mys-lang.org\r\n"
               b"Cache-Control: no-cache\r\n"
@@ -152,8 +151,7 @@ func test_request():
                                "cache-control": "no-cache",
                                "host": "mys-lang.org"}
 
-@test
-func test_request_no_query_nor_fragment():
+test request_no_query_nor_fragment():
     header = (b"GET / HTTP/1.1\r\n"
               b"\r\n")
     request = parse_request(header)
@@ -164,8 +162,7 @@ func test_request_no_query_nor_fragment():
     assert request.fragment is None
     assert request.headers == {}
 
-@test
-func test_request_with_fragment():
+test request_with_fragment():
     header = (b"GET /#foo HTTP/1.1\r\n"
               b"\r\n")
     request = parse_request(header)
@@ -176,8 +173,7 @@ func test_request_with_fragment():
     assert request.fragment == "foo"
     assert request.headers == {}
 
-@test
-func test_request_with_query():
+test request_with_query():
     header = (b"GET /?foo HTTP/1.1\r\n"
               b"\r\n")
     request = parse_request(header)
@@ -188,8 +184,7 @@ func test_request_with_query():
     assert request.fragment is None
     assert request.headers == {}
 
-@test
-func test_request_invalid_request_line():
+test request_invalid_request_line():
     header = (b" GET /statistics.html HTTP/1.1\r\n"
               b"\r\n")
 
@@ -201,8 +196,7 @@ func test_request_invalid_request_line():
 
     assert message == "invalid header line ' GET /statistics.html HTTP/1.1'"
 
-@test
-func test_request_invalid_header_line():
+test request_invalid_header_line():
     header = (b"GET / HTTP/1.1\r\n"
               b"Host mys-lang.org\r\n"
               b"\r\n")
@@ -215,8 +209,7 @@ func test_request_invalid_header_line():
 
     assert message == "invalid header line 'Host mys-lang.org'"
 
-@test
-func test_request_remaining_data():
+test request_remaining_data():
     header = (b"GET / HTTP/1.1\r\n"
               b"Host: mys-lang.org\r\n"
               b"\r\n"
@@ -230,8 +223,7 @@ func test_request_remaining_data():
 
     assert message == "remaining header data"
 
-@test
-func test_request_with_size():
+test request_with_size():
     header = (b"GET / HTTP/1.1\r\n"
               b"Host: mys-lang.org\r\n"
               b"\r\n"
@@ -244,8 +236,7 @@ func test_request_with_size():
     assert request.fragment is None
     assert request.headers == {"host": "mys-lang.org"}
 
-@test
-func test_parse_query():
+test parse_query():
     assert parse_query("") == {}
     assert parse_query("a=10") == {"a": "10"}
     assert parse_query("a=10&foo=bar") == {"a": "10", "foo": "bar"}

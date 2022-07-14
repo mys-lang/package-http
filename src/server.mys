@@ -277,8 +277,7 @@ class _BasicServer(Fiber):
         except:
             pass
 
-@test
-func test_basic():
+test basic():
     port: u32 = 50654
     server = _BasicServer(port)
     server.start()
