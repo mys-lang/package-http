@@ -10,8 +10,7 @@ from http import get
 
 _HEADERS_END: bytes = b"\r\n\r\n"
 
-@enum
-class Status:
+enum Status:
     """HTTP response status codes.
 
     """
