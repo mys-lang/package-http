@@ -51,7 +51,7 @@ func main(argv: [string]):
     args = parser.parse(argv)
 
     count = u32(args.value_of("--count"))
-    indent = "  " + "".join([" " for _ in range(i64(len(str(count))))])
+    indent = "  " + "".join([" " for _ in range(str(count).length())])
 
     for i, story in enumerate(fetch_top_stories(count)):
         print(f"{i + 1}. {story.title}")
