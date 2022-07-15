@@ -14,7 +14,7 @@ trait _Io:
     func write(self, data: bytes):
         pass
 
-    func read(self, size: u64) -> bytes:
+    func read(self, size: i64) -> bytes:
         pass
 
     func read_line(self) -> string:
@@ -26,7 +26,7 @@ trait _Io:
         while True:
             line = self.read_line()
 
-            if len(line) == 0:
+            if line.length() == 0:
                 break
 
             mo = line.match(re"^([^:]+): (.*)$")
@@ -55,7 +55,7 @@ class _TcpIo(_Io):
     func write(self, data: bytes):
         self._client.write(data)
 
-    func read(self, size: u64) -> bytes:
+    func read(self, size: i64) -> bytes:
         return self._buffered_reader.read(size)
 
     func read_line(self) -> string:
@@ -72,7 +72,7 @@ class _StcpIo(_Io):
     func write(self, data: bytes):
         self._client.write(data)
 
-    func read(self, size: u64) -> bytes:
+    func read(self, size: i64) -> bytes:
         return self._buffered_reader.read(size)
 
     func read_line(self) -> string:
@@ -106,7 +106,7 @@ func _execute(method: string,
         headers["accept"] = "*/*"
 
     if data is not None:
-        headers["content-length"] = f"{len(data)}"
+        headers["content-length"] = f"{data.length()}"
 
     request = f"{method} {path} HTTP/1.1\r\n"
 
@@ -133,17 +133,17 @@ func _execute(method: string,
         content = b""
 
         while True:
-            chunk_length = u64(io.read_line(), 16)
+            chunk_length = i64(io.read_line(), 16)
 
             if chunk_length == 0:
                 break
 
             content += io.read(chunk_length)
 
-            if len(io.read_line()) != 0:
+            if io.read_line().length() != 0:
                 raise HttpError("Bad chunked content in response.")
     else:
-        content = io.read(u64(content_length))
+        content = io.read(i64(content_length))
 
     return Response(headers, content)
 

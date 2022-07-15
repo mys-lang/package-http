@@ -122,7 +122,7 @@ class StringResponse(Response):
     func write(self, client: Client):
         body = self.data.to_utf8()
         client.write(f"HTTP/1.1 200 OK\r\n"
-                     f"Content-Length: {len(body)}\r\n"   #
+                     f"Content-Length: {body.length()}\r\n"   #
                      f"\r\n".to_utf8())
         client.write(body)
 
@@ -137,7 +137,7 @@ class FileResponse(Response):
     func write(self, client: Client):
         body = self.path.read_binary()
         client.write(f"HTTP/1.1 200 OK\r\n"
-                     f"Content-Length: {len(body)}\r\n"
+                     f"Content-Length: {body.length()}\r\n"
                      f"\r\n".to_utf8())
         client.write(body)
 
@@ -170,7 +170,7 @@ class _Client(Fiber):
         if header is None:
             return
 
-        request_header = parse_request(header, len(header))
+        request_header = parse_request(header, header.length())
         request = Request(request_header.method,
                           request_header.path,
                           request_header.query,

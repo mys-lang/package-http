@@ -35,7 +35,7 @@ class _HeaderParser:
         self._offset = 0
         self._size = 0
 
-    func parse_request(self, size: u64) -> Request:
+    func parse_request(self, size: i64) -> Request:
         """Parse a request of given size from start of header buffer.
 
         """
@@ -86,7 +86,7 @@ class _HeaderParser:
         while True:
             line = self._read_line()
 
-            if len(line) == 0:
+            if line.length() == 0:
                 break
 
             mo = line.match(_RE_HEADER_LINE)
@@ -103,9 +103,9 @@ func parse_request(header: bytes) -> Request:
 
     """
 
-    return parse_request(header, len(header))
+    return parse_request(header, header.length())
 
-func parse_request(header: bytes, size: u64) -> Request:
+func parse_request(header: bytes, size: i64) -> Request:
     """Parse given request header.
 
     """
@@ -122,7 +122,7 @@ func parse_query(value: string) -> {string: string}:
     params = {}
 
     for param in value.split('&'):
-        if len(param) == 0:
+        if param.length() == 0:
             continue
 
         pos = param.find('=')
@@ -228,7 +228,7 @@ test request_with_size():
               b"Host: mys-lang.org\r\n"
               b"\r\n"
               b"\r\n")
-    request = parse_request(header, len(header) - 2)
+    request = parse_request(header, header.length() - 2)
     assert request.method == "GET"
     assert request.path == "/"
     assert request.query is None
