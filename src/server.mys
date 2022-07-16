@@ -234,7 +234,7 @@ class Server:
 
         self._routes.append((_RegexPath(path), route))
 
-    func serve(self, port: u32):
+    func serve(self, port: i64):
         """Serve HTTP requests.
 
         """
@@ -258,7 +258,7 @@ class _GetFileRoute(Route):
         return FileResponse(Path(request.path))
 
 class _BasicServer(Fiber):
-    port: u32
+    port: i64
 
     func run(self):
         try:
@@ -270,7 +270,7 @@ class _BasicServer(Fiber):
             pass
 
 test basic():
-    port: u32 = 50654
+    port = 50654
     server = _BasicServer(port)
     server.start()
     assert get("localhost", port, "/index.html").content == b"Hello!"

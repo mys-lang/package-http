@@ -80,7 +80,7 @@ class _StcpIo(_Io):
 
 func _execute(method: string,
               host: string,
-              port: u32,
+              port: i64,
               path: string,
               secure: bool,
               headers: {string: string},
@@ -148,7 +148,7 @@ func _execute(method: string,
     return Response(headers, content)
 
 func get(host: string,
-         port: u32 = 80,
+         port: i64 = 80,
          path: string = "/",
          secure: bool = False,
          headers: {string: string} = {}) -> Response:
@@ -160,7 +160,7 @@ func get(host: string,
 
 func post(host: string,
           content: bytes,
-          port: u32 = 80,
+          port: i64 = 80,
           path: string = "/",
           secure: bool = False,
           headers: {string: string} = {}) -> Response:
