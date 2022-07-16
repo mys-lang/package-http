@@ -122,7 +122,7 @@ class StringResponse(Response):
     func write(self, client: Client):
         body = self.data.to_utf8()
         client.write(f"HTTP/1.1 200 OK\r\n"
-                     f"Content-Length: {body.length()}\r\n"   #
+                     f"Content-Length: {body.length()}\r\n"
                      f"\r\n".to_utf8())
         client.write(body)
 
