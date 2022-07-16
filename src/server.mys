@@ -7,6 +7,7 @@ from http import HttpError
 from io.buffered_reader import BufferedReader
 from fiber import Fiber
 from http import get
+from http import post
 
 _HEADERS_END: bytes = b"\r\n\r\n"
 
@@ -73,24 +74,21 @@ trait Route:
 
         """
 
-        # ToDo: Should raise method not supported error.
-        return None
+        return EmptyResponse(Status.MethodNotAllowed)
 
     func on_post(self, request: Request) -> Response:
         """Handle a POST request.
 
         """
 
-        # ToDo: Should raise method not supported error.
-        return None
+        return EmptyResponse(Status.MethodNotAllowed)
 
     func on_delete(self, request: Request) -> Response:
         """Handle a DELETE request.
 
         """
 
-        # ToDo: Should raise method not supported error.
-        return None
+        return EmptyResponse(Status.MethodNotAllowed)
 
 class Request:
     method: string
@@ -178,18 +176,13 @@ class _Client(Fiber):
                           request_header.fragment,
                           request_header.headers,
                           None)
-        response: Response = None
 
         try:
             response = self._handle_request(request)
         except ResponseError as error:
-            response = EmptyResponse(error.status)
+            response: Response = EmptyResponse(error.status)
         except Error:
-            response = EmptyResponse(Status.InternalServerError)
-
-        # ToDo: Remove once raise in on_*() works.
-        if response is None:
-            response = EmptyResponse(Status.MethodNotAllowed)
+            response: Response = EmptyResponse(Status.InternalServerError)
 
         response.write(self.client)
 
@@ -204,7 +197,7 @@ class _Client(Fiber):
             case "DELETE":
                 return route.on_delete(request)
             case _:
-                raise ResponseError(Status.MethodNotAllowed)
+                return EmptyResponse(Status.MethodNotAllowed)
 
     func _find_route(self, request_path: string) -> (Route, [string]):
         for path, route in self.routes:
@@ -289,6 +282,12 @@ test basic():
     b_txt = tmpdir.path().join("b.txt")
     b_txt.write_text("Bar!")
     assert get("localhost", port, b_txt.to_string()).content == b"Bar!"
+
+    try:
+        post("localhost", b"", port)
+        assert False
+    except HttpError as error:
+        assert "405 Method Not Allowed" in error.message
 
     server.cancel()
     server.join()
