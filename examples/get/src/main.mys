@@ -10,7 +10,7 @@ func main(argv: [string]):
     args = parser.parse(argv)
 
     response = get(host=args.value_of("host"),
-                   port=u32(args.value_of("--port")),
+                   port=i64(args.value_of("--port")),
                    path=args.value_of("--path"),
                    secure=args.is_present("--secure"))
     print(string(response.content))
