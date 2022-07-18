@@ -180,9 +180,9 @@ class _Client(Fiber):
         try:
             response = self._handle_request(request)
         except ResponseError as error:
-            response: Response = EmptyResponse(error.status)
+            response = EmptyResponse(error.status)
         except Error:
-            response: Response = EmptyResponse(Status.InternalServerError)
+            response = EmptyResponse(Status.InternalServerError)
 
         response.write(self.client)
 
