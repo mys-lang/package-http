@@ -84,7 +84,7 @@ func _execute(method: string,
               path: string,
               secure: bool,
               headers: {string: string},
-              data: bytes = None) -> Response:
+              data: bytes? = None) -> Response:
     io: _Io = None
 
     if secure:
@@ -159,7 +159,7 @@ func get(host: string,
     return _execute("GET", host, port, path, secure, headers)
 
 func post(host: string,
-          content: bytes,
+          content: bytes?,
           port: i64 = 80,
           path: string = "/",
           secure: bool = False,

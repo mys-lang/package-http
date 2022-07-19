@@ -41,13 +41,13 @@ class ResponseError(Error):
 
 trait _Path:
 
-    func match(self, path: string) -> (bool, [string]):
+    func match(self, path: string) -> (bool, [string]?):
         pass
 
 class _StringPath(_Path):
     path: string
 
-    func match(self, path: string) -> (bool, [string]):
+    func match(self, path: string) -> (bool, [string]?):
         return (path == self.path, None)
 
 class _RegexPath(_Path):
@@ -56,7 +56,7 @@ class _RegexPath(_Path):
     func __init__(self, regex: regex):
         self._regex = regex
 
-    func match(self, path: string) -> (bool, [string]):
+    func match(self, path: string) -> (bool, [string]?):
         mo = self._regex.match(path)
 
         if mo is None:
@@ -97,7 +97,7 @@ class Request:
     params: {string: string}
     fragment: string
     headers: {string: string}
-    matches: [string]
+    matches: [string]?
 
 trait Response:
     """A response.
@@ -238,7 +238,7 @@ class Server:
             client_fiber = _Client(client, self)
             client_fiber.start()
 
-    func _find_route(self, request_path: string) -> (Route, [string]):
+    func _find_route(self, request_path: string) -> (Route, [string]?):
         for path, route in self._routes:
             is_match, matches = path.match(request_path)
 
