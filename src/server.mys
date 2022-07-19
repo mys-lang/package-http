@@ -151,7 +151,7 @@ class EmptyResponse(Response):
 
 class _Client(Fiber):
     client: Client
-    routes: [(_Path, Route)]
+    server: Server
 
     func run(self):
         try:
@@ -187,7 +187,7 @@ class _Client(Fiber):
         response.write(self.client)
 
     func _handle_request(self, request: Request) -> Response:
-        route, request.matches = self._find_route(request.path)
+        route, request.matches = self.server._find_route(request.path)
 
         match request.method:
             case "GET":
@@ -198,15 +198,6 @@ class _Client(Fiber):
                 return route.on_delete(request)
             case _:
                 return EmptyResponse(Status.MethodNotAllowed)
-
-    func _find_route(self, request_path: string) -> (Route, [string]):
-        for path, route in self.routes:
-            is_match, matches = path.match(request_path)
-
-            if is_match:
-                return route, matches
-
-        raise ResponseError(Status.NotFound)
 
 
 class Server:
@@ -244,8 +235,17 @@ class Server:
 
         while True:
             client = server.accept()
-            client_fiber = _Client(client, self._routes)
+            client_fiber = _Client(client, self)
             client_fiber.start()
+
+    func _find_route(self, request_path: string) -> (Route, [string]):
+        for path, route in self._routes:
+            is_match, matches = path.match(request_path)
+
+            if is_match:
+                return route, matches
+
+        raise ResponseError(Status.NotFound)
 
 class _GetStringRoute(Route):
 
