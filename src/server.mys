@@ -273,7 +273,9 @@ test basic():
     port = 50654
     server = _BasicServer(port)
     server.start()
-    assert get("localhost", port, "/index.html").content == b"Hello!"
+    response = get("localhost", port, "/index.html")
+    assert response.status_code == 200
+    assert response.content == b"Hello!"
 
     tmpdir = TemporaryDirectory()
     a_txt = tmpdir.path().join("a.txt")
@@ -287,7 +289,10 @@ test basic():
         post("localhost", b"", port)
         assert False
     except HttpError as error:
-        assert "405 Method Not Allowed" in error.message
+        assert "405" in error.message
+
+    response = post("localhost", b"", port, check=False)
+    assert response.status_code == 405
 
     server.cancel()
     server.join()

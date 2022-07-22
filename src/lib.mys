@@ -6,6 +6,7 @@ class HttpError(Error):
     message: string
 
 class Response:
+    status_code: i64
     headers: {string: string}
     content: bytes
 
@@ -84,7 +85,8 @@ func _execute(method: string,
               path: string,
               secure: bool,
               headers: {string: string},
-              data: bytes? = None) -> Response:
+              data: bytes? = None,
+              check: bool = True) -> Response:
     io: _Io = None
 
     if secure:
@@ -121,51 +123,68 @@ func _execute(method: string,
 
     io.write(request_bytes)
     line = io.read_line()
-    mo = line.match(re"^HTTP/1.1 200 OK$")
+    mo = line.match(re"^HTTP/1.1 (\d+) ")
 
     if mo is None:
-        raise HttpError(f"Unsuccessful status in response ({line}).")
+        raise HttpError(f"Invalid response '{line}'.")
+
+    status_code = i64(mo.group(1))
+
+    if check and status_code != 200:
+        raise HttpError(f"Unsuccessful status code in response ({status_code}).")
 
     headers = io.read_headers()
     content_length = headers.get("content-length", None)
+    transfer_encoding = headers.get("transfer-encoding", None)
 
     if content_length is None:
         content = b""
 
-        while True:
-            chunk_length = i64(io.read_line(), 16)
+        if transfer_encoding is None:
+            while True:
+                data = io.read(1)
 
-            if chunk_length == 0:
-                break
+                if data.length() == 0:
+                    break
 
-            content += io.read(chunk_length)
+                content += data
+        elif "chunked" in transfer_encoding:
+            while True:
+                chunk_length = i64(io.read_line(), 16)
 
-            if io.read_line().length() != 0:
-                raise HttpError("Bad chunked content in response.")
+                if chunk_length == 0:
+                    break
+
+                content += io.read(chunk_length)
+
+                if io.read_line().length() != 0:
+                    raise HttpError("Bad chunked content in response.")
     else:
         content = io.read(i64(content_length))
 
-    return Response(headers, content)
+    return Response(status_code, headers, content)
 
 func get(host: string,
          port: i64 = 80,
          path: string = "/",
          secure: bool = False,
-         headers: {string: string} = {}) -> Response:
+         headers: {string: string} = {},
+         check: bool = True) -> Response:
     """Get given path from given address.
 
     """
 
-    return _execute("GET", host, port, path, secure, headers)
+    return _execute("GET", host, port, path, secure, headers, None, check)
 
 func post(host: string,
           content: bytes?,
           port: i64 = 80,
           path: string = "/",
           secure: bool = False,
-          headers: {string: string} = {}) -> Response:
+          headers: {string: string} = {},
+          check: bool = True) -> Response:
     """Post given path and content to given address.
 
     """
 
-    return _execute("POST", host, port, path, secure, headers, content)
+    return _execute("POST", host, port, path, secure, headers, content, check)
