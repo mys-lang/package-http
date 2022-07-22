@@ -37,7 +37,7 @@ trait _Io:
 
         return headers
 
-func read_line(buffered_reader: BufferedReader) -> string:
+func _read_line(buffered_reader: BufferedReader) -> string:
     line = buffered_reader.read_until(b"\r\n", keep_pattern=False)
 
     if line is None:
@@ -60,7 +60,7 @@ class _TcpIo(_Io):
         return self._buffered_reader.read(size)
 
     func read_line(self) -> string:
-        return read_line(self._buffered_reader)
+        return _read_line(self._buffered_reader)
 
 class _StcpIo(_Io):
     _client: StcpClient
@@ -77,7 +77,7 @@ class _StcpIo(_Io):
         return self._buffered_reader.read(size)
 
     func read_line(self) -> string:
-        return read_line(self._buffered_reader)
+        return _read_line(self._buffered_reader)
 
 func _execute(method: string,
               host: string,
