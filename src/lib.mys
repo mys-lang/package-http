@@ -87,7 +87,7 @@ func _execute(method: string,
               headers: {string: string},
               data: bytes? = None,
               check: bool = True) -> Response:
-    io: _Io = None
+    io: _Io? = None
 
     if secure:
         client = StcpClient()

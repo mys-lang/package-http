@@ -11,9 +11,9 @@ class Request:
 
     method: string
     path: string
-    query: string
+    query: string?
     params: {string: string}
-    fragment: string
+    fragment: string?
     headers: {string: string}
 
 class _HeaderParser:
