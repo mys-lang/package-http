@@ -127,13 +127,25 @@ class StringResponse(Response):
 class FileResponse(Response):
     status: Status
     path: Path
+    begin: i64?
+    end: i64?
 
-    func __init__(self, path: Path, status: Status = Status.Ok):
+    func __init__(self,
+                  path: Path,
+                  status: Status = Status.Ok,
+                  begin: i64? = None,
+                  end: i64? = None):
         self.status = status
         self.path = path
+        self.begin = begin
+        self.end = end
 
     func write(self, client: Client):
         body = self.path.read_binary()
+
+        if self.begin is not None and self.end is not None:
+            body = body[self.begin:self.end]
+
         client.write(f"HTTP/1.1 200 OK\r\n"
                      f"Content-Length: {body.length()}\r\n"
                      f"\r\n".to_utf8())
